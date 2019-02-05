@@ -32,7 +32,6 @@ def land_detector():
         for lp in lp_list: lp.position()
         landed_drones_number = 0
         for i in range(min(len(drone_list), len(lp_list))):
-            print abs(drone_list[i].pose[2] - lp_list[i].pose[2])
             if abs(drone_list[i].pose[0] - lp_list[i].pose[0])<0.07 and abs(drone_list[i].pose[1] - lp_list[i].pose[1])<0.07 and abs(drone_list[i].pose[2] - lp_list[i].pose[2])<0.1:
                 landed_drones_number += 1
                 if land_time[i]==-1:
@@ -75,7 +74,7 @@ if __name__ == '__main__':
     """ initialization """
     # Names and variables
     TakeoffHeight  = 1.8
-    data_recording = 0
+    data_recording = 1
     toFly          = 1
     lp_names = ['lp1', 'lp2']
     cf_names = ['cf1']
@@ -99,6 +98,17 @@ if __name__ == '__main__':
     # landing_velocity = 30
     print "landing_velocity", landing_velocity
 
+    if data_recording:
+        try:
+            Subject_name = sys.argv[1]
+        except:
+            print "\nEnter subject's name. For example:"
+            print "rosrun crazyflie_demo swarmskin.py NAME"
+            os.system("rosnode kill /swarmskin")
+            sys.exit(1)
+        pose_recording = Process(target=start_recording)
+        pose_recording.start()
+
 
     # flight to landing positions
     # l=0.3; global_goal_poses = [ [ 0.0, l], [ l,   l], [ l,  -l], [ 0.0,-l] ]
@@ -118,19 +128,6 @@ if __name__ == '__main__':
             print cf_names[i]
             threads.append( Thread(target=goto_land_pose, args=(cf_list[i], TakeoffHeight, global_goal_poses[i],)) )
             threads[-1].start()
-
-
-    if data_recording:
-        try:
-            Subject_name = sys.argv[1]
-        except:
-            print "\nEnter subject's name. For example:"
-            print "rosrun crazyflie_demo swarmskin.py NAME"
-            os.system("rosnode kill /swarmskin")
-            sys.exit(1)
-        pose_recording = Process(target=start_recording)
-        pose_recording.start()
-
 
 
     # detect if drones touch landing pads
