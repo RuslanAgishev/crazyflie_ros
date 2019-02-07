@@ -11,7 +11,6 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 import os
 import sys
 from multiprocessing import Process
-from threading import Thread
 import random
 import numpy as np
 from numpy.linalg import norm
@@ -49,31 +48,30 @@ def land_detector():
         #     print "Number of landed drones: " + str(landed_drones_number)
         #     if landed_drones_number==len(drone_list): rospy.signal_shutdown("landed")
 
-def goto_land_pose(cf, drone, TakeoffHeight, goalXY):
+def flight(cf_list, TakeoffHeight, goal_poses_XY):
     print("Takeoff")
-    cf.takeoff(targetHeight=TakeoffHeight, duration=5.0)
-    time.sleep(5.0)
-
-    cf.goTo(goal = [goalXY[0], goalXY[1], TakeoffHeight], yaw=0.0, duration=3.0, relative=False)
+    for cf in cf_list:
+        cf.takeoff(targetHeight=TakeoffHeight, duration=2.0)
     time.sleep(3.0)
 
+    print("Moving to landing positions")
+    for i in range(len(cf_list)):
+        print goal_poses_XY[i]
+        cf_list[i].goTo(goal=[goal_poses_XY[i][0], goal_poses_XY[i][1], TakeoffHeight], yaw=0.0, duration=3.0, relative=False)
+    time.sleep(4.0)
+
     print("Switch on LEDs")
-    cf.setParam("tf/state", 4) # LED is ON
+    for cf in cf_list:
+        cf.setParam("tf/state", 4) # LED is ON
     global start_time
     start_time = time.time()
+    time.sleep(0.1)
 
-    print("Descending...")
-    # high-level landing doesn't work properly
-    cf.land(targetHeight=-0.1, duration=landing_velocity)
-    time.sleep(landing_velocity)
-    # rate = rospy.Rate(60)
-    # drone.sp = np.array( [goalXY[0], goalXY[1], TakeoffHeight] )
-    # while drone.sp[2] > -1.0:
-    #     # print(drone.sp[2])
-    #     drone.sp[2] -= 0.007
-    #     drone.fly()
+    for cf in cf_list:
+        print 'Landing...'
+        cf.land(targetHeight=-0.1, duration=landing_velocity)
+    time.sleep(landing_velocity+1)
 
-    #     rate.sleep()
 
 
 if __name__ == '__main__':
@@ -82,14 +80,13 @@ if __name__ == '__main__':
     """ initialization """
     # Names and variables
     TakeoffHeight  = 0.5
-    data_recording = 1
-    toFly          = 0
+    data_recording = 0
+    toFly          = 1
     lp_names = []
     # lp_names = ['lp1', 'lp2']
     # lp_names = ['lp1', 'lp2', 'lp3', 'lp4']
-    cf_names = ['cf2', 'cf3']
     # cf_names = ['cf1', 'cf2']
-    # cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
+    cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
     PATH = "~/Desktop/Swarm/Swarmskin/data/"       
 
     drone_list = []
@@ -103,9 +100,7 @@ if __name__ == '__main__':
         lp_list.append( swarmlib.Mocap_object(lp_name) )
 
     # landing_velocity = random.choice([13,22]) #13,22
-    landing_velocity = 13
-    # landing_velocity = 22
-    # landing_velocity = 30
+    landing_velocity = 6 # 22 , 30
     print "landing_velocity", landing_velocity
 
     if data_recording:
@@ -121,11 +116,9 @@ if __name__ == '__main__':
 
 
     # flight to landing positions
-    # l=0.3; global_goal_poses = [ [ 0.0, l], [ l,   l], [ l,  -l], [ 0.0,-l] ]
-    # l=0.3; global_goal_poses = [ lp_list[0].position()[:2], lp_list[1].position()[:2], [ l,  -l], [ 0.0,-l] ]
-    l=0.25; global_goal_poses = [ [ 0, l], [ 0, -l] ]
+    l=0.3; global_goal_poses = [ [ 0.0, l], [ l,   l], [ l,  -l], [ 0.0,-l] ]
+    # l=0.25; global_goal_poses = [ [ 0, l], [ 0, -l] ]
     if toFly:
-        # cfs init
         cf_list = []
         for cf_name in cf_names:
             cf = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
@@ -134,15 +127,12 @@ if __name__ == '__main__':
             cf.setParam("stabilizer/controller", 2) # Use Mellinger controller
             time.sleep(0.1)
             cf_list.append(cf)
-        threads = []
-        for i in range(len(cf_names)):
-            print cf_names[i]
-            threads.append( Thread(target=goto_land_pose, args=(cf_list[i], drone_list[i], TakeoffHeight, global_goal_poses[i],)) )
-            threads[-1].start()
+
+        flight(cf_list, TakeoffHeight, global_goal_poses)
 
 
     # detect if drones touch landing pads
-    land_detector()
+    # land_detector()
 
 
 
