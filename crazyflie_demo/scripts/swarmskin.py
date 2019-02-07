@@ -21,8 +21,8 @@ from numpy.linalg import norm
 
 def start_recording():
     print "Data recording started"
-    os.system("mkdir "+Subject_name)
-    os.system("rosbag record -o "+PATH+Subject_name+"/vicon_data /vicon/cf1/cf1 /vicon/cf2/cf2 /vicon/cf3/cf3 /vicon/cf4/cf4 /vicon/lp1/lp1 /vicon/lp2/lp2")
+    os.system("mkdir -p "+PATH+Subject_name)
+    os.system("rosbag record -o "+PATH+Subject_name+"/vicon_data /vicon/cf1/cf1 /vicon/cf2/cf2 /vicon/cf3/cf3 /vicon/cf4/cf4") #/vicon/lp1/lp1 /vicon/lp2/lp2")
     # os.system("rosbag record -o "+PATH+"poses /vicon/cf1/cf1 /vicon/cf2/cf2 /vicon/cf3/cf3 /vicon/cf4/cf4 /vicon/lp1/lp1 /vicon/lp2/lp2 /vicon/lp3/lp3 /vicon/lp4/lp4")
 
 def land_detector():
@@ -34,9 +34,9 @@ def land_detector():
         for i in range(min(len(drone_list), len(lp_list))):
             if abs(drone_list[i].pose[0] - lp_list[i].pose[0])<0.07 and abs(drone_list[i].pose[1] - lp_list[i].pose[1])<0.07 and abs(drone_list[i].pose[2] - lp_list[i].pose[2])<0.1:
                 landed_drones_number += 1
-                if land_time[i]==-1:
-                    land_time[i] = time.time()-start_time
-                    print("Drone %d is landed after %s seconds" % (i+1, land_time[i]))
+                # if land_time[i]==-1:
+                    # land_time[i] = time.time()-start_time
+                    # print("Drone %d is landed after %s seconds" % (i+1, land_time[i]))
                 if toFly:
                     cf_list[i].stop() # stop motors
                     cf_list[i].setParam("tf/state", 0) # switch off LEDs
@@ -49,7 +49,7 @@ def land_detector():
         #     print "Number of landed drones: " + str(landed_drones_number)
         #     if landed_drones_number==len(drone_list): rospy.signal_shutdown("landed")
 
-def goto_land_pose(cf, TakeoffHeight, goalXY):
+def goto_land_pose(cf, drone, TakeoffHeight, goalXY):
     print("Takeoff")
     cf.takeoff(targetHeight=TakeoffHeight, duration=5.0)
     time.sleep(5.0)
@@ -59,13 +59,21 @@ def goto_land_pose(cf, TakeoffHeight, goalXY):
 
     print("Switch on LEDs")
     cf.setParam("tf/state", 4) # LED is ON
-    time.sleep(1.0)
     global start_time
     start_time = time.time()
 
     print("Descending...")
+    # high-level landing doesn't work properly
     cf.land(targetHeight=-0.1, duration=landing_velocity)
     time.sleep(landing_velocity)
+    # rate = rospy.Rate(60)
+    # drone.sp = np.array( [goalXY[0], goalXY[1], TakeoffHeight] )
+    # while drone.sp[2] > -1.0:
+    #     # print(drone.sp[2])
+    #     drone.sp[2] -= 0.007
+    #     drone.fly()
+
+    #     rate.sleep()
 
 
 if __name__ == '__main__':
@@ -73,11 +81,13 @@ if __name__ == '__main__':
 
     """ initialization """
     # Names and variables
-    TakeoffHeight  = 1.8
+    TakeoffHeight  = 0.5
     data_recording = 1
-    toFly          = 1
-    lp_names = ['lp1', 'lp2']
-    cf_names = ['cf1']
+    toFly          = 0
+    lp_names = []
+    # lp_names = ['lp1', 'lp2']
+    # lp_names = ['lp1', 'lp2', 'lp3', 'lp4']
+    cf_names = ['cf2', 'cf3']
     # cf_names = ['cf1', 'cf2']
     # cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
     PATH = "~/Desktop/Swarm/Swarmskin/data/"       
@@ -112,7 +122,8 @@ if __name__ == '__main__':
 
     # flight to landing positions
     # l=0.3; global_goal_poses = [ [ 0.0, l], [ l,   l], [ l,  -l], [ 0.0,-l] ]
-    l=0.3; global_goal_poses = [ lp_list[0].position()[:2], lp_list[1].position()[:2], [ l,  -l], [ 0.0,-l] ]
+    # l=0.3; global_goal_poses = [ lp_list[0].position()[:2], lp_list[1].position()[:2], [ l,  -l], [ 0.0,-l] ]
+    l=0.25; global_goal_poses = [ [ 0, l], [ 0, -l] ]
     if toFly:
         # cfs init
         cf_list = []
@@ -126,7 +137,7 @@ if __name__ == '__main__':
         threads = []
         for i in range(len(cf_names)):
             print cf_names[i]
-            threads.append( Thread(target=goto_land_pose, args=(cf_list[i], TakeoffHeight, global_goal_poses[i],)) )
+            threads.append( Thread(target=goto_land_pose, args=(cf_list[i], drone_list[i], TakeoffHeight, global_goal_poses[i],)) )
             threads[-1].start()
 
 

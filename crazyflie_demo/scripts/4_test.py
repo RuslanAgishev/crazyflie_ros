@@ -17,15 +17,16 @@ def test(cf_name):
 	cf1.setParam("commander/enHighLevel", 1)
 	cf1.setParam("stabilizer/estimator", 2) # Use EKF
 	cf1.setParam("stabilizer/controller", 2) # Use Mellinger controller
+	time.sleep(0.1)
 	print(cf_name+" takeoff")
 	cf1.takeoff(targetHeight = TakeoffHeight, duration = TakeoffTime)
-	time.sleep(TakeoffTime+1)
+	time.sleep(TakeoffTime)
 
 	cf1.land(targetHeight = 0.0, duration = TakeoffTime+3)
 	time.sleep(3.0)
 
 """ init """
-TakeoffHeight = 1.5
+TakeoffHeight = 2.0
 TakeoffTime   = 6.0
 toFly         = 1
 
