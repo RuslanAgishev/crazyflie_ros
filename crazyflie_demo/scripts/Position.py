@@ -40,11 +40,11 @@ if __name__ == '__main__':
 
     # take off
     while not rospy.is_shutdown():
-        for y in range(10):
+        for i in range(10):
             msg.x = 0.0
             msg.y = 0.0
             msg.yaw = 0.0
-            msg.z = y / 25.0
+            msg.z = i / 25.0
             now = rospy.get_time()
             msg.header.seq += 1
             msg.header.stamp = rospy.Time.now()
