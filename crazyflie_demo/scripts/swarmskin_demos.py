@@ -21,30 +21,22 @@ from numpy.linalg import norm
 def start_recording():
     print "Data recording started"
     os.system("mkdir -p "+PATH+Subject_name)
-    os.system("rosbag record -o "+PATH+Subject_name+"/vicon_data /vicon/cf1/cf1 /vicon/cf2/cf2 /vicon/cf3/cf3 /vicon/cf4/cf4")
+    os.system("rosbag record -o "+PATH+Subject_name+"/vicon_data /vicon/cf1/cf1 /vicon/cf2/cf2 /vicon/cf3/cf3 /vicon/cf4/cf4") #/vicon/lp1/lp1 /vicon/lp2/lp2")
     # os.system("rosbag record -o "+PATH+"poses /vicon/cf1/cf1 /vicon/cf2/cf2 /vicon/cf3/cf3 /vicon/cf4/cf4 /vicon/lp1/lp1 /vicon/lp2/lp2 /vicon/lp3/lp3 /vicon/lp4/lp4")
 
 def land_detector():
-    land_time = - np.ones( min(len(drone_list), len(lp_list)) )
     switched_off = np.zeros(len(drone_list))
     while not rospy.is_shutdown():
         for drone in drone_list: drone.position()
-        for lp in lp_list: lp.position()
         landed_drones_number = 0
-        for i in range(min(len(drone_list), len(lp_list))):
-            # print(drone_list[i], lp_list[i])
-            print(abs(drone_list[i].pose[0] - lp_list[i].pose[0]), abs(drone_list[i].pose[1] - lp_list[i].pose[1]), abs(drone_list[i].pose[2] - lp_list[i].pose[2]))
-            if abs(drone_list[i].pose[0] - lp_list[i].pose[0])<0.15 and abs(drone_list[i].pose[1] - lp_list[i].pose[1])<0.15 and abs(drone_list[i].pose[2] - lp_list[i].pose[2])<0.05:
+        for i in range(len(drone_list)):
+            if drone_list[i].pose[2] < 0.87:
                 landed_drones_number += 1
-                # if land_time[i]==-1:
-                #     land_time[i] = time.time()-start_time
-                #     print("Drone %d is landed after %s seconds" % (i+1, land_time[i]))
                 if toFly:
                     print "Switch off the motors, %d drone" %i
                     if switched_off[i]==0:
                         for t in range(3): cf_list[i].stop()                  # stop motors
                     switched_off[i] = 1
-                    # cf_list[i].setParam("tf/state", 0) # switch off LEDs
                 if landed_drones_number==len(drone_list): rospy.signal_shutdown("landed")
 
 
@@ -60,15 +52,9 @@ def flight(cf_list, TakeoffHeight, goal_poses_XY):
     for t in range(num_commands):
         for i in range(len(cf_list)):
             print goal_poses_XY[i]
-            cf_list[i].goTo(goal=[goal_poses_XY[i][0], goal_poses_XY[i][1], TakeoffHeight], yaw=0.0, duration=4.0, relative=False)
-    time.sleep(6.0)
+            cf_list[i].goTo(goal=[goal_poses_XY[i][0], goal_poses_XY[i][1], TakeoffHeight], yaw=0.0, duration=3.0, relative=False)
+    time.sleep(3.0)
 
-    print("Switch on LEDs")
-    for cf in cf_list:
-        cf.setParam("tf/state", 4) # LED is ON
-    global start_time
-    start_time = time.time()
-    time.sleep(0.1)
 
     for t in range(num_commands):
         for cf in cf_list:
@@ -84,12 +70,12 @@ if __name__ == '__main__':
 
     """ initialization """
     # Names and variables
-    TakeoffHeight  = 2.0
+    TakeoffHeight  = 1.0
     data_recording = 0
     toFly          = 1
-    # lp_names = []
 
-    lp_names = ['lp1', 'lp2', 'lp3', 'lp4']
+    lp_names = []
+    # lp_names = ['lp1', 'lp2', 'lp3', 'lp4']
     cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
     # lp_names = ['lp4']
     # cf_names = ['cf1']
@@ -107,7 +93,7 @@ if __name__ == '__main__':
         lp_list.append( swarmlib.Mocap_object(lp_name) )
 
     # landing_velocity = random.choice([13,22]) #13,22
-    landing_velocity = 30 # 22 , 30
+    landing_velocity = 10 # 22 , 30
     print "landing_velocity", landing_velocity
 
     if data_recording:
@@ -123,8 +109,12 @@ if __name__ == '__main__':
 
 
     # flight to landing positions
-    l=0.25
-    global_goal_poses = [ [ -0.4, l], [ l-0.4, l+0.02], [ l-0.4, -l-0.02], [ -0.4,-l] ]
+    # l=0.3; global_goal_poses = [ [ -0.4, l], [ l-0.4, l+0.05], [ l-0.4, -l-0.05], [ -0.4,-l] ]
+    x0 = 0.5; y0 = -0.1
+    l = 0.15
+    # global_goal_poses = [ [ x0-l, y0+l], [ x0+l, y0+l], [ x0+l, y0-l], [ x0-l, y0-l] ]
+    for lp in lp_list: lp.pose = lp.position()
+    global_goal_poses = [ [0.075, -0.007], [0.575, 0.044], [0.593 , -0.329 ], [0.252, -0.326] ]
     if toFly:
         cf_list = []
         for cf_name in cf_names:

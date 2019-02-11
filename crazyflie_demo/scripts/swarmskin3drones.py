@@ -32,9 +32,8 @@ def land_detector():
         for lp in lp_list: lp.position()
         landed_drones_number = 0
         for i in range(min(len(drone_list), len(lp_list))):
-            # print(drone_list[i], lp_list[i])
             print(abs(drone_list[i].pose[0] - lp_list[i].pose[0]), abs(drone_list[i].pose[1] - lp_list[i].pose[1]), abs(drone_list[i].pose[2] - lp_list[i].pose[2]))
-            if abs(drone_list[i].pose[0] - lp_list[i].pose[0])<0.15 and abs(drone_list[i].pose[1] - lp_list[i].pose[1])<0.15 and abs(drone_list[i].pose[2] - lp_list[i].pose[2])<0.05:
+            if abs(drone_list[i].pose[0] - lp_list[i].pose[0])<0.07 and abs(drone_list[i].pose[1] - lp_list[i].pose[1])<0.07 and abs(drone_list[i].pose[2] - lp_list[i].pose[2])<0.1:
                 landed_drones_number += 1
                 # if land_time[i]==-1:
                 #     land_time[i] = time.time()-start_time
@@ -49,7 +48,7 @@ def land_detector():
 
 
 def flight(cf_list, TakeoffHeight, goal_poses_XY):
-    num_commands = 3
+    num_commands = 5
     for t in range(num_commands):
         print("Takeoff")
         for cf in cf_list:
@@ -60,8 +59,8 @@ def flight(cf_list, TakeoffHeight, goal_poses_XY):
     for t in range(num_commands):
         for i in range(len(cf_list)):
             print goal_poses_XY[i]
-            cf_list[i].goTo(goal=[goal_poses_XY[i][0], goal_poses_XY[i][1], TakeoffHeight], yaw=0.0, duration=4.0, relative=False)
-    time.sleep(6.0)
+            cf_list[i].goTo(goal=[goal_poses_XY[i][0], goal_poses_XY[i][1], TakeoffHeight], yaw=0.0, duration=6.0, relative=False)
+    time.sleep(8.0)
 
     print("Switch on LEDs")
     for cf in cf_list:
@@ -86,11 +85,13 @@ if __name__ == '__main__':
     # Names and variables
     TakeoffHeight  = 2.0
     data_recording = 0
+
     toFly          = 1
+
     # lp_names = []
 
-    lp_names = ['lp1', 'lp2', 'lp3', 'lp4']
-    cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
+    lp_names = ['lp4', 'lp1', 'lp2']
+    cf_names = ['cf1', 'cf2', 'cf3']
     # lp_names = ['lp4']
     # cf_names = ['cf1']
     # cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
@@ -107,7 +108,7 @@ if __name__ == '__main__':
         lp_list.append( swarmlib.Mocap_object(lp_name) )
 
     # landing_velocity = random.choice([13,22]) #13,22
-    landing_velocity = 30 # 22 , 30
+    landing_velocity = 20 # 22 , 30
     print "landing_velocity", landing_velocity
 
     if data_recording:
@@ -124,7 +125,7 @@ if __name__ == '__main__':
 
     # flight to landing positions
     l=0.25
-    global_goal_poses = [ [ -0.4, l], [ l-0.4, l+0.02], [ l-0.4, -l-0.02], [ -0.4,-l] ]
+    global_goal_poses = [ [ -0.4, 1*l], [ -0.4, 2*l], [ -0.4, 3*l] ]
     if toFly:
         cf_list = []
         for cf_name in cf_names:
