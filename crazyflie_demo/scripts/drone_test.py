@@ -12,13 +12,20 @@ from std_msgs.msg import Empty
 import crazyflie
 
 def test(cf_name):
-	cf1 = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
-	cf1.setParam("commander/enHighLevel", 1)
-	cf1.setParam("stabilizer/estimator", 2) # Use EKF
-	cf1.setParam("stabilizer/controller", 2) # Use Mellinger controller
-	for t in range(3): cf1.takeoff(targetHeight = TakeoffHeight, duration = TakeoffTime)
+	num_commands = 3
+	cf = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
+	cf.setParam("commander/enHighLevel", 1)
+	cf.setParam("stabilizer/estimator", 2) # Use EKF
+	cf.setParam("stabilizer/controller", 2) # Use Mellinger controller
+	for t in range(num_commands): cf.takeoff(targetHeight = TakeoffHeight, duration = TakeoffTime)
 	time.sleep(TakeoffTime)
-	for t in range(3): cf1.land(targetHeight = 0.0, duration = TakeoffTime+3)
+	# for t in range(num_commands): cf.goTo(goal = [0.5, 0.0, 0.0], yaw=0.0, duration = 2.0, relative = True)
+	# time.sleep(3.0)
+	# for t in range(num_commands): cf.goTo(goal = [0.0, 0.5, 0.0], yaw=0.0, duration = 2.0, relative = True)
+	# time.sleep(3.0)
+	# for t in range(num_commands): cf.goTo(goal = [-0.5, -0.5, 0.0], yaw=0.0, duration = 2.0, relative = True)
+	# time.sleep(3.0)
+	for t in range(num_commands): cf.land(targetHeight = 0.0, duration = TakeoffTime+3)
 
 """ init """
 TakeoffHeight = 1.0
@@ -29,8 +36,6 @@ try:
 	cf_name = sys.argv[1]
 except:
 	cf_name = 'cf1'
-
-print(cf_name)
 
 if toFly:
 	print(cf_name+" takeoff")
