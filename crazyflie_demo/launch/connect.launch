@@ -20,7 +20,8 @@
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-<!--  <group ns="cf1">
+ <group ns="cf1">
+ <group ns="cf1">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri1)" />
       <param name="tf_prefix" value="cf1" />
@@ -42,7 +43,7 @@
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame1) /cf1/base_link 100" />
-  </group> -->
+  </group>
 
 
  <group ns="cf2">
@@ -69,7 +70,7 @@
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame2) /cf2/base_link 100" />
   </group>
 
-
+ 
   <group ns="cf3">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri3)" />
@@ -94,7 +95,8 @@
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame3) /cf3/base_link 100" />
   </group>
 
-<group ns="cf4">
+
+ <group ns="cf4">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri4)" />
       <param name="tf_prefix" value="cf4" />
@@ -118,7 +120,7 @@
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame4) /cf4/base_link 100" />
   </group>
 
-<!--   <group ns="cf5">
+   <group ns="cf5">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri5)" />
       <param name="tf_prefix" value="cf5" />
@@ -140,7 +142,8 @@
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame5) /cf5/base_link 100" />
-  </group> -->
+  </group>
+
 
   <!-- run vicon bridge -->
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>

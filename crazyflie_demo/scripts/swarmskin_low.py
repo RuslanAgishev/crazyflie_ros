@@ -76,12 +76,12 @@ TimeFlightSec    = 5 # [s]
 ViconRate        = 200 # [Hz]
 N_samples        = ViconRate * TimeFlightSec
 
-# cf_names         = ['cf1',
-# 					'cf2',
-# 					'cf3',
-# 					'cf4'
-# 				   ]
-cf_names = ['cf5']
+
+cf_names         = ['cf1',
+					'cf2',
+					'cf3',
+					'cf4'
+				   ]
 
 lp_names         = ['lp2', 'lp4']
 # lp_names         = ['lp1', 'lp2', 'lp3', 'lp4']

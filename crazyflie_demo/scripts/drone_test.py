@@ -27,6 +27,7 @@ def test(cf_name):
 	# time.sleep(3.0)
 	for t in range(num_commands): cf.land(targetHeight = 0.0, duration = TakeoffTime+3)
 
+
 """ init """
 TakeoffHeight = 1.0
 TakeoffTime   = 5.0

@@ -27,6 +27,7 @@ def test(cf_name):
 
 """ init """
 TakeoffHeight = 1.0
+
 TakeoffTime   = 6.0
 toFly         = 1
 

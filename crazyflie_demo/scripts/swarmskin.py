@@ -84,7 +84,8 @@ if __name__ == '__main__':
 
     """ initialization """
     # Names and variables
-    TakeoffHeight  = 1.0
+
+    TakeoffHeight  = 2.0
     data_recording = 0
     toFly          = 1
     # lp_names = []
@@ -107,7 +108,7 @@ if __name__ == '__main__':
         lp_list.append( swarmlib.Mocap_object(lp_name) )
 
     # landing_velocity = random.choice([13,22]) #13,22
-    landing_velocity = 13 # 22 , 30
+    landing_velocity = 30 # 22 , 30
     print "landing_velocity", landing_velocity
 
     if data_recording:
