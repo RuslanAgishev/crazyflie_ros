@@ -7,8 +7,9 @@ import uav_trajectory
 
 if __name__ == '__main__':
     rospy.init_node('test_high_level')
+    cf_name = 'cf2'
 
-    cf = crazyflie.Crazyflie("cf5", "/vicon/cf5/cf5")
+    cf = crazyflie.Crazyflie(cf_name, "/vicon/"+cf_name+"/"+cf_name)
 
     cf.setParam("commander/enHighLevel", 1)
     cf.setParam("stabilizer/estimator", 2) # Use EKF
@@ -42,4 +43,4 @@ if __name__ == '__main__':
     # cf.startTrajectory(0, timescale=1.0, reverse=True)
     # time.sleep(traj1.duration * 1.0)
 
-    cf.stop()
+    # cf.stop()
