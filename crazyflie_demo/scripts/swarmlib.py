@@ -47,6 +47,7 @@ class Mocap_object: # superclass
 		self.tl = TransformListener()
 		self.pose = np.array([0,0,0])
 		self.orient = np.array([0,0,0]) # Euler angles
+		self.path = Path()
 		# for velocity:
 		sub = message_filters.Subscriber(self.tf, TransformStamped)
 		self.cache = message_filters.Cache(sub, 100)
@@ -63,6 +64,8 @@ class Mocap_object: # superclass
 		return get_angles(np.array(quaternion))
 	def publish_position(self):
 		publish_pose(self.pose, self.orient, self.name+"_pose")
+	def publish_path(self, limit=1000):
+		publish_path(self.path, self.pose, self.orient, self.name+"_path", limit)
 	def velocity(self):
 		aver_interval = 0.1 # sec
 		msg_past = self.cache.getElemAfterTime(self.cache.getLatestTime() - rospy.rostime.Duration(aver_interval))
@@ -97,9 +100,6 @@ class Drone(Mocap_object): # TODO: use superclass mocap_object
 	def __init__(self, name, leader = False):
 		Mocap_object.__init__(self, name)
 		self.leader = leader
-		self.sp = np.array([0,0,0])
-		self.path = Path()
-		self.path_ = Path()
 		self.near_obstacle = False
 		self.nearest_obstacle = None
 		self.rad_imp = radius_impedance_model()      # Obstacle avoidance
@@ -110,10 +110,8 @@ class Drone(Mocap_object): # TODO: use superclass mocap_object
 
 	def publish_sp(self):
 		publish_pose(self.sp, np.array([0,0,0]), self.name+"_sp")
-	def publish_path(self, limit=1000):
-		publish_path(self.path, self.sp, self.orient, self.name+"_path", limit)
-	def publish_path_(self, limit=1000):
-		publish_path(self.path_, self.sp, self.orient, self.name+"_path_", limit)
+	def publish_path_sp(self, limit=1000):
+		publish_path(self.path, self.sp, self.orient, self.name+"_path_sp", limit)
 	def fly(self):
 		publish_goal_pos(self.sp, 0, "/"+self.name)
 	def apply_limits(self, uper_limits, lower_limits):

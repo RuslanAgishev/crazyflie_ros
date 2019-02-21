@@ -7,21 +7,22 @@ import uav_trajectory
 
 if __name__ == '__main__':
     rospy.init_node('test_high_level')
-    cf_name = 'cf2'
 
-    cf = crazyflie.Crazyflie(cf_name, "/vicon/"+cf_name+"/"+cf_name)
+    cf_name = "cf2"
+    
+    cf = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
 
     cf.setParam("commander/enHighLevel", 1)
     cf.setParam("stabilizer/estimator", 2) # Use EKF
     cf.setParam("stabilizer/controller", 2) # Use mellinger controller
 
-    cf.takeoff(targetHeight = 0.5, duration = 2.0)
-    time.sleep(3.0)
+    cf.takeoff(targetHeight = 1.5, duration = 7.0)
+    time.sleep(7.0)
 
     # cf.goTo(goal = [0.5, 0.0, 0.0], yaw=0.2, duration = 2.0, relative = True)
     # time.sleep(3.0)
 
-    cf.land(targetHeight = 0.0, duration = 2.0)
+    cf.land(targetHeight = 0.0, duration = 5.0)
 
     # traj1 = uav_trajectory.Trajectory()
     # traj1.loadcsv("takeoff.csv")

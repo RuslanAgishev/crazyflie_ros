@@ -44,7 +44,7 @@ def hover():
 	print "hovering..."
 	if toFly:
 		print "Switch on LEDs"
-		for cf in cf_list: cf.setParam("tf/state", 4) # LED is ON
+		# for cf in cf_list: cf.setParam("tf/state", 4) # LED is ON
 	while not rospy.is_shutdown():
 		for i in range(200):
 			for drone in drones:
@@ -77,11 +77,12 @@ ViconRate        = 200 # [Hz]
 N_samples        = ViconRate * TimeFlightSec
 
 
-cf_names         = ['cf1',
-					'cf2',
-					'cf3',
-					'cf4'
-				   ]
+# cf_names         = ['cf1',
+# 					'cf2',
+# 					'cf3',
+# 					'cf4'
+# 				   ]
+cf_names = ['cf2']
 
 lp_names         = ['lp2', 'lp4']
 # lp_names         = ['lp1', 'lp2', 'lp3', 'lp4']
@@ -106,8 +107,8 @@ if __name__ == '__main__':
 		for name in cf_names:
 		    cf = crazyflie.Crazyflie(name, '/vicon/'+name+'/'+name)
 		    cf.setParam("commander/enHighLevel", 1)
-		    cf.setParam("stabilizer/estimator", 2)  # Use EKF
-		    cf.setParam("stabilizer/controller", 2) # Use mellinger controller
+		    # cf.setParam("stabilizer/estimator", 2)  # Use EKF
+		    # cf.setParam("stabilizer/controller", 2) # Use mellinger controller
 		    # cf.takeoff(targetHeight = TakeoffHeight, duration = TakeoffTime)
 		    cf_list.append(cf)
 		# time.sleep(TakeoffTime+1)
