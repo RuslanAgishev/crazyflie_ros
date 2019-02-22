@@ -8,7 +8,7 @@ import uav_trajectory
 if __name__ == '__main__':
     rospy.init_node('test_high_level')
 
-    cf_name = "cf2"
+    cf_name = "cf5"
     
     cf = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
 

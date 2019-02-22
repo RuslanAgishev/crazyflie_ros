@@ -20,7 +20,7 @@ from impedance_modeles import velocity_impedance
 toFly            = 1
 put_limits       = 0
 TakeoffHeight    = 1.5 # meters
-land_imp         = 1
+land_imp         = 0
 TakeoffTime      = 5     # seconds
 limits           = np.array([ 1.7, 1.7, 2.5 ]) # limits desining safety flight area in the room
 limits_negative  = np.array([ -1.7, -1.5, -0.1 ])
@@ -54,6 +54,8 @@ if __name__ == '__main__':
 	while not rospy.is_shutdown():
 		drone1.sp[2] -= 0.01
 		
+		""" impedance model """
+		####################################################
 		if land_imp:
 			""" ipedance terms calculation """
 			drone_vel = swarmlib.velocity(drone1.sp)
@@ -63,7 +65,7 @@ if __name__ == '__main__':
 			""" correct pose with impedance model """
 			drone1.sp[2] += 0.03 * imp_pose[2]
 			print drone_vel[2]
-
+		#####################################################
 		if toFly: drone1.fly()
 		if drone1.sp[2]<-0.5:
 			if toFly:
