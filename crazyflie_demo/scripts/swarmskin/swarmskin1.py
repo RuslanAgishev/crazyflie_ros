@@ -9,26 +9,22 @@ import swarmlib
 import message_filters
 from geometry_msgs.msg import PoseStamped, TransformStamped
 import os
+import sys
 from multiprocessing import Process
 import random
 import numpy as np
 from math import *
 
 
-# def start_recording(cf_names, lp_names, folder_name='test'):
-#     topics = ''
-#     for name in cf_names:
-#         topics += '/vicon/'+name+'/'+name + ' '
-#     for name in lp_names:
-#         topics += '/vicon/'+name+'/'+name + ' '
-#     os.system("mkdir -p "+PATH+folder_name)
-#     os.system("rosbag record -o "+PATH+folder_name+"/vicon_data "+topics)
-
-def start_recording(cf_name, lp_name, folder_name='test'):
-    topics = '/vicon/'+cf_name+'/'+cf_name + ' /vicon/'+lp_name+'/'+lp_name
+def start_recording(cf_names, lp_names, folder_name='test'):
+    topics = ''
+    for name in cf_names:
+        topics += '/vicon/'+name+'/'+name + ' '
+    for name in lp_names:
+        topics += '/vicon/'+name+'/'+name + ' '
     os.system("mkdir -p "+PATH+folder_name)
-    node_name = 'node_'+cf_name+'_'+lp_name
-    os.system("rosbag record -o "+PATH+folder_name+ '/' +cf_name+'_'+lp_name +' '+topics + ' __name:='+node_name)
+    os.system("rosbag record -o "+PATH+folder_name+"/" + lp + ' ' +topics + ' __name:=recorder')
+
 
 def land_detector():
     print "Land Detector..."
@@ -46,8 +42,9 @@ def land_detector():
                         print "Switch off the motors, %d drone" %d
                         landed_drones_number += 1
                         # print "rosnode kill /node_"+cf_names[0]+"_"+lp_names[0]
-                        time.sleep(0.1)
-                        os.system("rosnode kill /node_"+cf_names[d]+'_'+lp_names[d])
+                        if data_recording:
+                            time.sleep(0.1)
+                            os.system("rosnode kill /recorder")
                         if toFly:
                             for t in range(3): cf_list[d].stop() # stop motors
                     switched_off[d] = 1
@@ -64,75 +61,68 @@ data_recording = 1
 toFly          = 1
 PATH = "~/Desktop/Swarm/Swarmskin/data/"
 
-
-cf_names = ['cf1', 'cf2', 'cf3', 'cf4']
-# cf_names = ['cf1']#, 'cf2', 'cf3', 'cf4']
+cf_name = 'cf1'
+cf_names = [cf_name]
 
 lp_names = ['lp1', 'lp2', 'lp3', 'lp4']
 # lp_names = ['lp3', 'lp1', 'lp4']
 # lp_names = []
 
-drone_list = []
-for name in cf_names:
-    drone = swarmlib.Drone(name)
-    drone_list.append(drone)
+
+drone = swarmlib.Drone(cf_name)
+drone_list = [drone]
+
 lp_list = []
 for lp_name in lp_names:
     lp_list.append( swarmlib.Mocap_object(lp_name) )
 
 
 
-# landing_velocity = random.choice([13,22]) #13,22
-landing_velocity = 40
-# landing_velocity = 22
-# landing_velocity = 30
-print "landing_velocity", landing_velocity
+# landing_time = random.choice([13,22]) #13,22
+landing_time = 20 # [s] 13, 22, 30, 40
 
+print "landing_time", landing_time
+
+lp = sys.argv[1]
+experiment_type = sys.argv[2]
+print "go to landing pad location... ", lp
 
 if toFly:
     """ takeoff """
-    cf_list = []
-    for cf_name in cf_names:
-        print "adding.. ", cf_name
-        cf = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
-        cf.setParam("commander/enHighLevel", 1)
-        cf.setParam("stabilizer/estimator",  2) # Use EKF
-        cf.setParam("stabilizer/controller", 2) # Use mellinger controller
-        cf_list.append(cf)
+    print "adding.. ", cf_name
+    cf = crazyflie.Crazyflie(cf_name, '/vicon/'+cf_name+'/'+cf_name)
+    cf.setParam("commander/enHighLevel", 1)
+    cf.setParam("stabilizer/estimator",  2) # Use EKF
+    cf.setParam("stabilizer/controller", 2) # Use mellinger controller
+    cf_list = [cf]
+    print "takeoff.. ", cf.prefix
     for t in range(3):
-        for cf in cf_list:
-            print "takeoff.. ", cf.prefix
-            cf.takeoff(targetHeight = TAKEOFFHEIGHT, duration = 5.0)
+        cf.takeoff(targetHeight = TAKEOFFHEIGHT, duration = 5.0)
     time.sleep(5.0)
 
     """ going to landing poses """
     r = 0.3; theta1 = pi/4; theta2 = pi/4
     l = 0.245 # distance between drones (arm length)
     width = 0.45 # between person's shoulders
-    human_pose = np.array([-1.0,0.0]); hx = human_pose[0]; hy = human_pose[1]
+    human_pose = np.array([-0.4,0.0]); hx = human_pose[0]; hy = human_pose[1]
     goto_arr = [ [hx+ (r+l)*cos(theta1), hy+ (r+l)*sin(theta1) +width/2],
                  [hx+ r*cos(theta1),     hy+ r*sin(theta1) +width/2],
                  [hx+ r*cos(theta2),     hy- r*sin(theta2) -width/2],
                  [hx+ (r+l)*cos(theta2), hy- (r+l)*sin(theta2) -width/2] ]
 
-    for cf in cf_list:
-        print "goto.. ", cf.prefix
-        drone_id = int(cf.prefix[2])
-        for t in range(3): cf.goTo(goal = goto_arr[drone_id-1]+[TAKEOFFHEIGHT], yaw=0.0, duration = 3.0, relative = False)
+    for t in range(3): cf.goTo(goal = goto_arr[lp_names.index(lp)]+[TAKEOFFHEIGHT], yaw=0.0, duration = 3.0, relative = False)
     time.sleep(3.0)
 
 
     """ landing """
     print 'Landing...'
-    for cf in cf_list:
-        for t in range(3): cf.land(targetHeight = -0.05, duration = landing_velocity)
+    for t in range(3): cf.land(targetHeight = -0.05, duration = landing_time)
 
 
 if data_recording:
     print "Data recording started"
-    for d in range(len(cf_names)):
-        pose_recording = Process(target=start_recording, args=(cf_names[d], lp_names[d],))
-        pose_recording.start()
+    pose_recording = Process(target=start_recording, args=(cf_names, lp_names, experiment_type, ))
+    pose_recording.start()
 
 
 land_detector()
