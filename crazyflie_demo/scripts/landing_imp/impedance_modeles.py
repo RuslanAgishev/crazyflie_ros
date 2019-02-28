@@ -14,7 +14,7 @@ def MassSpringDamper(state,t,F, mode='overdamped'):
 	elif mode=='underdapmped':
 		m = 1.0; k = 2; b = 2*sqrt(m*k)-2 # underdamped
 	elif mode=='overdamped':
-		m = 1.0; k = 2; b = 2*sqrt(m*k)+5 # overdamped
+		m = 1.0; k = 2; b = 2*sqrt(m*k)+35 # overdamped
 	else:
 		m = 1.0; k = 2; b = 2*sqrt(m*k) # critically damped
 	xdd = -(b/m)*xd - (k/m)*x + F/m

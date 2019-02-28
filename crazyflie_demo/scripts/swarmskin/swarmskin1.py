@@ -56,7 +56,7 @@ rospy.init_node('test_high_level')
 
 """ initialization """
 # Names and variables
-TAKEOFFHEIGHT  = 1.8
+TAKEOFFHEIGHT  = 2.0
 data_recording = 1
 toFly          = 1
 PATH = "~/Desktop/Swarm/Swarmskin/data/"
@@ -79,7 +79,7 @@ for lp_name in lp_names:
 
 
 # landing_time = random.choice([13,22]) #13,22
-landing_time = 20 # [s] 13, 22, 30, 40
+landing_time = 17 # [s] 17, 22, 30, 40
 
 print "landing_time", landing_time
 
@@ -101,14 +101,15 @@ if toFly:
     time.sleep(5.0)
 
     """ going to landing poses """
-    r = 0.3; theta1 = pi/4; theta2 = pi/4
-    l = 0.245 # distance between drones (arm length)
-    width = 0.45 # between person's shoulders
-    human_pose = np.array([-0.4,0.0]); hx = human_pose[0]; hy = human_pose[1]
-    goto_arr = [ [hx+ (r+l)*cos(theta1), hy+ (r+l)*sin(theta1) +width/2],
-                 [hx+ r*cos(theta1),     hy+ r*sin(theta1) +width/2],
-                 [hx+ r*cos(theta2),     hy- r*sin(theta2) -width/2],
-                 [hx+ (r+l)*cos(theta2), hy- (r+l)*sin(theta2) -width/2] ]
+    # r = 0.3; theta1 = pi/4; theta2 = pi/4
+    # l = 0.230 # distance between drones (arm length)
+    # width = 0.45 # between person's shoulders
+    # human_pose = np.array([-1.0,0.0]); hx = human_pose[0]; hy = human_pose[1]
+    # goto_arr = [ [hx+ (r+l)*cos(theta1), hy+ (r+l)*sin(theta1) +width/2],
+    #              [hx+ r*cos(theta1),     hy+ r*sin(theta1) +width/2],
+    #              [hx+ r*cos(theta2),     hy- r*sin(theta2) -width/2],
+    #              [hx+ (r+l)*cos(theta2), hy- (r+l)*sin(theta2) -width/2] ]
+    goto_arr = [[-0.83, 0.70], [-0.97, 0.52], [-0.98, -0.50], [-0.85, -0.70]]
 
     for t in range(3): cf.goTo(goal = goto_arr[lp_names.index(lp)]+[TAKEOFFHEIGHT], yaw=0.0, duration = 3.0, relative = False)
     time.sleep(3.0)
