@@ -23,7 +23,7 @@ np.set_printoptions(formatter={'float': '{: 0.2f}'.format})
 import swarmlib
 
 # PARAMETERs #############
-toFly            = 1
+toFly            = 0
 vel_ctrl         = 0
 vel_koef         = 4.0
 pos_ctrl		 = 1
@@ -53,10 +53,10 @@ cf_names         = np.array(['cf1',
 							 'cf3'])
 human_name       = 'palm'
 obstacle_names   = np.array([
-							 'obstacle0',
-							 'obstacle1',
-							 'obstacle2',
-							 'obstacle3',
+							 # 'obstacle0',
+							 # 'obstacle1',
+							 # 'obstacle2',
+							 # 'obstacle3',
 							 # 'obstacle4',
 							 # 'obstacle5',
 							 # 'obstacle6',
@@ -116,9 +116,9 @@ if __name__ == '__main__':
 	obstacle = np.array([])
 	for i in range(len(obstacle_names)):
 		obstacle = np.append(obstacle, swarmlib.Obstacle( obstacle_names[i], i, R_obstacles))
-	drone1 = swarmlib.Drone(cf_names[0], obstacle, leader = True)
-	drone2 = swarmlib.Drone(cf_names[1], obstacle)
-	drone3 = swarmlib.Drone(cf_names[2], obstacle)
+	drone1 = swarmlib.Drone(cf_names[0], leader = True)
+	drone2 = swarmlib.Drone(cf_names[1])
+	drone3 = swarmlib.Drone(cf_names[2])
 	human = swarmlib.Mocap_object(human_name)
 
 	rate = rospy.Rate(60)

@@ -33,7 +33,7 @@ def led_control(cf):
 """ init """
 TakeoffHeight = 1.8
 TakeoffTime   = 6.0
-toFly         = 1
+toFly         = 0
 
 try:
 	cf_name = sys.argv[1]

@@ -5,6 +5,7 @@ import rospy
 import tf
 from geometry_msgs.msg import PoseStamped, TransformStamped, Twist
 from nav_msgs.msg import Path
+from visualization_msgs.msg import Marker
 
 from math import *
 import math
@@ -45,7 +46,8 @@ class Mocap_object: # superclass
 		self.tf = '/vicon/'+name+'/'+name
 		self.tl = TransformListener()
 		self.pose = np.array([0,0,0])
-		self.orient = np.array([0,0,0])
+		self.orient = np.array([0,0,0]) # Euler angles
+		self.path = Path()
 		# for velocity:
 		sub = message_filters.Subscriber(self.tf, TransformStamped)
 		self.cache = message_filters.Cache(sub, 100)
@@ -62,6 +64,8 @@ class Mocap_object: # superclass
 		return get_angles(np.array(quaternion))
 	def publish_position(self):
 		publish_pose(self.pose, self.orient, self.name+"_pose")
+	def publish_path(self, limit=1000):
+		publish_path(self.path, self.pose, self.orient, self.name+"_path", limit)
 	def velocity(self):
 		aver_interval = 0.1 # sec
 		msg_past = self.cache.getElemAfterTime(self.cache.getLatestTime() - rospy.rostime.Duration(aver_interval))
@@ -70,13 +74,32 @@ class Mocap_object: # superclass
 			vel = vel_estimation_TransformStamped(msg_past, msg_now)
 			self.vel = vel
 
+class Obstacle:
+    def __init__(self, name='obstacle'):
+    	self.name = name
+        self.R = 0.1
+        self.pose = np.array([0,0,0])
+        self.orient = np.array([0,0,0])
+        self.dist_to_drones = []
+        self.attractive_coef = 1./700
+        self.repulsive_coef = 200
+    def publish_position(self):
+        # publish_pose(self.pose, self.orient, self.name+"_pose")
+        publish_cylinder(self.pose, self.orient, self.R, self.name+"_cylinder")
+    def calculate_dist(self, drones_poses):
+    	for i in range(len(drones_poses)):
+        	self.dist_to_drones[i] = np.linalg.norm(drones_poses[i]-self.pose)
+    def safety_borders(self, R, N=1000):
+    	""" circumference near obstacle """
+    	C = np.zeros((N,2))
+    	C[:,0] = self.pose[0] + R*np.cos(np.linspace(-pi,pi,N))
+    	C[:,1] = self.pose[1] + R*np.sin(np.linspace(-pi,pi,N))
+    	return C
+
 class Drone(Mocap_object): # TODO: use superclass mocap_object
 	def __init__(self, name, leader = False):
 		Mocap_object.__init__(self, name)
 		self.leader = leader
-		self.sp = np.array([0,0,0])
-		self.path = Path()
-		self.path_ = Path()
 		self.near_obstacle = False
 		self.nearest_obstacle = None
 		self.rad_imp = radius_impedance_model()      # Obstacle avoidance
@@ -87,10 +110,8 @@ class Drone(Mocap_object): # TODO: use superclass mocap_object
 
 	def publish_sp(self):
 		publish_pose(self.sp, np.array([0,0,0]), self.name+"_sp")
-	def publish_path(self, limit=1000):
-		publish_path(self.path, self.sp, self.orient, self.name+"_path", limit)
-	def publish_path_(self, limit=1000):
-		publish_path(self.path_, self.sp, self.orient, self.name+"_path_", limit)
+	def publish_path_sp(self, limit=1000):
+		publish_path(self.path, self.sp, self.orient, self.name+"_path_sp", limit)
 	def fly(self):
 		publish_goal_pos(self.sp, 0, "/"+self.name)
 	def apply_limits(self, uper_limits, lower_limits):
@@ -128,6 +149,11 @@ def publish_goal_pos(cf_goal_pos, cf_goal_yaw, cf_name):
 def publish_pose(pose, orient, topic_name):
 	msg = msg_def_PoseStamped(pose, orient)
 	pub = rospy.Publisher(topic_name, PoseStamped, queue_size=1)
+	pub.publish(msg)
+def publish_cylinder(pose, orient, R, topic_name):
+	shape = Marker.CYLINDER
+	msg = msg_def_Cylinder(pose, orient, shape, R=R)
+	pub = rospy.Publisher(topic_name, Marker, queue_size=1)
 	pub.publish(msg)
 def publish_path(path, pose, orient, topic_name, limit=1000):
 	msg = msg_def_PoseStamped(pose, orient)
@@ -177,6 +203,32 @@ def msg_def_PoseStamped(pose, orient):
 	msg.pose.orientation.z = quaternion[2]
 	msg.pose.orientation.w = quaternion[3]
 	msg.header.seq += 1
+	return msg
+def msg_def_Cylinder(pose, orient, shape, R):
+	worldFrame = "world"
+	msg = Marker()
+	msg.header.seq = 0
+	msg.header.stamp = rospy.Time.now()
+	msg.header.frame_id = worldFrame
+	msg.type = shape
+	msg.pose.position.x = pose[0]
+	msg.pose.position.y = pose[1]
+	msg.pose.position.z = pose[2] * 0.5
+	# quaternion = tf.transformations.quaternion_from_euler(orient[0], orient[1], orient[2])
+	quaternion = tf.transformations.quaternion_from_euler(0,0,0)
+	msg.pose.orientation.x = quaternion[0]
+	msg.pose.orientation.y = quaternion[1]
+	msg.pose.orientation.z = quaternion[2]
+	msg.pose.orientation.w = quaternion[3]
+	msg.scale.x = R
+	msg.scale.y = R
+	msg.scale.z = 2.0
+	msg.color.r = 0.0
+	msg.color.g = 1.0
+	msg.color.b = 0.0
+	msg.color.a = 1.0
+	msg.header.seq += 1
+	msg.header.stamp = rospy.Time.now()
 	return msg
 def rotate(origin, drone, human): # rotate drone around point
 	"""
@@ -972,30 +1024,30 @@ def killer_of_recorder():
 
 
 # IMPEDANCE ####################################################################################
-# HUMAN VELOCITY CALCULATION
-hum_time_array = np.ones(10)
-hum_pose_array = np.array([ np.ones(10), np.ones(10), np.ones(10) ])
-def hum_vel(human_pose):
+# OBJECT VELOCITY CALCULATION
+time_array = np.ones(10)
+pose_array = np.array([ np.ones(10), np.ones(10), np.ones(10) ])
+def velocity(pose):
 
-	for i in range(len(hum_time_array)-1):
-		hum_time_array[i] = hum_time_array[i+1]
-	hum_time_array[-1] = time.time()
+	for i in range(len(time_array)-1):
+		time_array[i] = time_array[i+1]
+	time_array[-1] = time.time()
 
-	for i in range(len(hum_pose_array[0])-1):
-		hum_pose_array[0][i] = hum_pose_array[0][i+1]
-		hum_pose_array[1][i] = hum_pose_array[1][i+1]
-		hum_pose_array[2][i] = hum_pose_array[2][i+1]
-	hum_pose_array[0][-1] = human_pose[0]
-	hum_pose_array[1][-1] = human_pose[1]
-	hum_pose_array[2][-1] = human_pose[2]
+	for i in range(len(pose_array[0])-1):
+		pose_array[0][i] = pose_array[0][i+1]
+		pose_array[1][i] = pose_array[1][i+1]
+		pose_array[2][i] = pose_array[2][i+1]
+	pose_array[0][-1] = pose[0]
+	pose_array[1][-1] = pose[1]
+	pose_array[2][-1] = pose[2]
 
-	vel_x = (hum_pose_array[0][-1]-hum_pose_array[0][0])/(hum_time_array[-1]-hum_time_array[0])
-	vel_y = (hum_pose_array[1][-1]-hum_pose_array[1][0])/(hum_time_array[-1]-hum_time_array[0])
-	vel_z = (hum_pose_array[2][-1]-hum_pose_array[2][0])/(hum_time_array[-1]-hum_time_array[0])
+	vel_x = (pose_array[0][-1]-pose_array[0][0])/(time_array[-1]-time_array[0])
+	vel_y = (pose_array[1][-1]-pose_array[1][0])/(time_array[-1]-time_array[0])
+	vel_z = (pose_array[2][-1]-pose_array[2][0])/(time_array[-1]-time_array[0])
 
-	hum_vel = np.array( [vel_x, vel_y, vel_z] )
+	vel = np.array( [vel_x, vel_y, vel_z] )
 
-	return hum_vel
+	return vel
 # HUMAN IMPEDANCE
 def MassSpringDamper(state,t,F):
 	x = state[0]
