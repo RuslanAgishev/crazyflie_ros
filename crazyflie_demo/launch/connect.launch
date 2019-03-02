@@ -3,21 +3,21 @@
   <arg name="uri1" default="radio://0/80/2M/E7E7E7E701" />
   <arg name="frame1" default="/vicon/cf1/cf1" />
 
-  <arg name="uri2" default="radio://0/120/2M/E7E7E7E702" />
+  <arg name="uri2" default="radio://0/100/2M/E7E7E7E702" />
   <arg name="frame2" default="/vicon/cf2/cf2" />
 
-  <arg name="uri3" default="radio://1/60/2M/E7E7E7E703" />
+  <arg name="uri3" default="radio://1/90/2M/E7E7E7E703" />
   <arg name="frame3" default="/vicon/cf3/cf3" />
 
-  <arg name="uri4" default="radio://1/100/2M/E7E7E7E704" />
+  <arg name="uri4" default="radio://1/110/2M/E7E7E7E704" />
   <arg name="frame4" default="/vicon/cf4/cf4" />
 
   <arg name="joy_dev" default="/dev/input/js0" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
-<!-- 
- <group ns="cf1">
+
+<!--  <group ns="cf1">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri1)" />
       <param name="tf_prefix" value="cf1" />
@@ -66,7 +66,7 @@
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame2) /cf2/base_link 100" />
   </group>
 
-
+<!-- 
   <group ns="cf3">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri3)" />
@@ -91,7 +91,7 @@
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame3) /cf3/base_link 100" />
   </group>
 
-<!--<group ns="cf4">
+<group ns="cf4">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri4)" />
       <param name="tf_prefix" value="cf4" />
@@ -113,11 +113,11 @@
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame4) /cf4/base_link 100" />
-  </group>
- -->
+  </group> -->
+ 
 
   <!-- run vicon bridge -->
-  <include file="$(find vicon_bridge)/launch/vicon.launch"/>
+  <include file="$(find vicon_bridge)/launch/wifi_vicon.launch"/>
 
   <!--enable joystick-->
   <!--node name="joy" pkg="joy" type="joy_node" output="screen" >

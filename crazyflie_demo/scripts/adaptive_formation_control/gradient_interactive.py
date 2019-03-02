@@ -1,5 +1,4 @@
-# In order to launch execute:
-# python3 gradient_interactive.py
+#!/usr/bin/env python
 
 import numpy as np
 from numpy.linalg import norm
@@ -8,7 +7,7 @@ from matplotlib import collections
 from scipy.ndimage.morphology import distance_transform_edt as bwdist
 from math import *
 import random
-from impedance.impedance_modeles import *
+from impedance_modeles import *
 import time
 
 from progress.bar import FillingCirclesBar
@@ -16,8 +15,11 @@ from tasks import *
 from threading import Thread
 from multiprocessing import Process
 import os
+import swarmlib
 
-
+""" ROS """
+import rospy
+from geometry_msgs.msg import TransformStamped
 
 def poly_area(x,y):
     # https://stackoverflow.com/questions/24467972/calculate-area-of-polygon-given-x-y-coordinates
@@ -45,7 +47,7 @@ def gradient_planner(f, current_point, ncols=500, nrows=500):
     """
     [gy, gx] = np.gradient(-f);
     iy, ix = np.array( meters2grid(current_point), dtype=int )
-    w = 40 # smoothing window size for gradient-velocity
+    w = 10 # smoothing window size for gradient-velocity
     vx = np.mean(gx[ix-int(w/2) : ix+int(w/2), iy-int(w/2) : iy+int(w/2)])
     vy = np.mean(gy[ix-int(w/2) : ix+int(w/2), iy-int(w/2) : iy+int(w/2)])
     V = np.array([vx, vy])
@@ -54,19 +56,19 @@ def gradient_planner(f, current_point, ncols=500, nrows=500):
 
     return next_point, V
 
-def combined_potential(obstacles_poses, goal, nrows=500, ncols=500):
+def combined_potential(obstacles_poses, goal, repulsive_coef=200, attractive_coef=1./700, nrows=500, ncols=500):
     """ Repulsive potential """
     obstacles_map = map(obstacles_poses)
     goal = meters2grid(goal)
     d = bwdist(obstacles_map==0);
     d2 = (d/100.) + 1; # Rescale and transform distances
     d0 = 2;
-    nu = 200;
-    repulsive = nu*((1./d2 - 1/d0)**2);
+    nu = repulsive_coef;
+    repulsive = nu*((1./d2 - 1./d0)**2);
     repulsive [d2 > d0] = 0;
     """ Attractive potential """
     [x, y] = np.meshgrid(np.arange(ncols), np.arange(nrows))
-    xi = 1/700.;
+    xi = attractive_coef;
     attractive = xi * ( (x - goal[0])**2 + (y - goal[1])**2 );
     """ Combine terms """
     f = attractive + repulsive;
@@ -117,24 +119,27 @@ def formation(num_robots, leader_des, v, R_swarm):
 """ initialization """
 animate              = 1   # show 1-each frame or 0-just final configuration
 random_obstacles     = 1   # randomly distributed obstacles on the map
-num_random_obstacles = 6   # number of random circular obstacles on the map
+num_random_obstacles = 8   # number of random circular obstacles on the map
 num_robots           = 4   # number of drones in formation
 moving_obstacles     = 1   # 0-static or 1-dynamic obstacles
 impedance            = 1   # impedance links between the leader and followers (leader's velocity)
 formation_gradient   = 1   # followers are attracting to their formation position and repelling from obstacles
 draw_gradients       = 1   # 1-gradients plot, 0-grid
+postprocessing       = 1
 """ human guided swarm params """
-interactive          = 1      # 1-human guided swarm, 0-potential fields as a planner to goal pose
+interactive          = 0      # 1-human guided swarm, 0-potential fields as a planner to goal pose
 human_name           = 'palm' # vicon mocap object
 pos_coef             = 3.0    # scale of the leader's movement relatively to the human operator
 initialized          = False  # is always inits with False: for relative position control
-max_its              = 1000 if interactive else 150 # max number of allowed iters for formation to reach the goal
+max_its              = 1000 if interactive else 100 # max number of allowed iters for formation to reach the goal
 # movie writer
 progress_bar = FillingCirclesBar('Number of Iterations', max=max_its)
 should_write_movie = 0; movie_file_name = os.getcwd()+'/videos/output.avi'
 movie_writer = get_movie_writer(should_write_movie, 'Simulation Potential Fields', movie_fps=10., plot_pause_len=0.01)
 
-R_obstacles = 0.1 # [m]
+R_obstacles = 0.05 # [m]
+repulsive_coef = 200
+attractive_coef = 1./700
 R_swarm     = 0.3 # [m]
 start = np.array([-1.8, 1.8]); goal = np.array([1.8, -1.8])
 V0 = (goal - start) / norm(goal-start)   # initial movement direction, |V0| = 1
@@ -151,22 +156,18 @@ else:
     obstacles_goal_poses = np.array([[-0, 0], [0.0, 0.0], [ 0.0, 0.0], [0.0, 0.0], [0,  0], [ 0.0,  0.0]])
 
 if interactive:
-    """ ROS """
-    import rospy
-    from geometry_msgs.msg import TransformStamped
     def human_pos_callback(data):
         global human_pose
         global human_yaw
         human_pose = np.array( [data.transform.translation.x, data.transform.translation.y, data.transform.translation.z] )
         # human_yaw  = np.array( [data.transform.rotation.x, data.transform.rotation.y, data.transform.rotation.z, data.transform.rotation.w] )
 
-    rospy.init_node('gradient_interactive', anonymous=True)
     pos_sub = rospy.Subscriber('/vicon/' + human_name + '/' + human_name, TransformStamped, human_pos_callback)
     time.sleep(1)
 
 
 """ Main loop """
-
+rospy.init_node('gradient_interactive', anonymous=True)
 # drones polygonal formation
 route1 = start # leader
 current_point1 = start
@@ -190,7 +191,7 @@ with movie_writer.saving(fig, movie_file_name, max_its) if should_write_movie el
 
         """ Leader's pose update """
         if interactive:
-            f1 = combined_potential(obstacles_poses, current_point1)
+            f1 = combined_potential(obstacles_poses, current_point1, repulsive_coef=repulsive_coef, attractive_coef=attractive_coef)
             # human palm pose and velocity using Vicon motion capture
             if not initialized:
                 human_pose_init = human_pose[:2]
@@ -222,11 +223,11 @@ with movie_writer.saving(fig, movie_file_name, max_its) if should_write_movie el
             imp_scale = 0.1 if interactive else 0.012
             # des_poses[0] += 0.1*imp_scale * imp_pose
             if num_robots>=2:
-                des_poses[1] -= 2*imp_scale*imp_pose @ u/norm(u) # impedance correction term is projected in u-vector direction
+                des_poses[1] -= 2*np.dot(imp_scale*imp_pose, u)/norm(u) # impedance correction term is projected in u-vector direction
             if num_robots>=3:
-                des_poses[2] += 2*imp_scale*imp_pose @ u/norm(u) # u-vector direction
+                des_poses[2] += 2*np.dot(imp_scale*imp_pose, u)/norm(u) # u-vector direction
             if num_robots>=4:
-                des_poses[3] -= imp_scale*imp_pose @ v/norm(v) # v-vector direction
+                des_poses[3] -= np.dot(imp_scale*imp_pose, v)/norm(v) # v-vector direction
 
         if formation_gradient:
             # following drones are attracting to desired points - vertices of the polygonal formation
@@ -266,36 +267,40 @@ with movie_writer.saving(fig, movie_file_name, max_its) if should_write_movie el
     print('Simulation execution time: ', round(end_time-start_time,2))
     plt.show()
 
+if postprocessing:
+    plt.figure()
+    plt.title("Centroid's trajectory")
+    plt.plot(centroid_route[:,0], centroid_route[:,1])
+    for route in routes:
+        plt.plot(route[:,0], route[:,1], '--')
+    plt.grid()
 
-plt.figure()
-plt.title("Centroid's trajectory")
-plt.plot(centroid_route[:,0], centroid_route[:,1])
-for route in routes:
-    plt.plot(route[:,0], route[:,1], '--')
-plt.grid()
-
-plt.figure()
-plt.title("1st Drone velocity, <V>="+str(np.mean(np.array(norm_vels[0])))+" m/s")
-for r in range(num_robots):
-    plt.plot(norm_vels[r])
-plt.xlabel('time')
-plt.ylabel('vel1, [m/s]')
-plt.grid()
-
-for i in range(len(routes[0])):
-    X = np.array([]); Y = np.array([])
+    plt.figure()
+    plt.title("1st Drone velocity, <V>="+str(np.mean(np.array(norm_vels[0])))+" m/s")
     for r in range(num_robots):
-        X = np.append( X, routes[r][i,0] )
-        Y = np.append( Y, routes[r][i,1] )
-    area_array.append(poly_area(X,Y))
+        plt.plot(norm_vels[r])
+    plt.xlabel('time')
+    plt.ylabel('vel1, [m/s]')
+    plt.grid()
 
-plt.figure()
-plt.title("Area of robots' formation")
-plt.plot(area_array)
-plt.xlabel('time')
-plt.ylabel('Formation area, [m^2]')
-plt.grid()
-plt.show()
+    for i in range(len(routes[0])):
+        X = np.array([]); Y = np.array([])
+        for r in range(num_robots):
+            X = np.append( X, routes[r][i,0] )
+            Y = np.append( Y, routes[r][i,1] )
+        area_array.append(poly_area(X,Y))
+
+    plt.figure()
+    plt.title("Area of robots' formation")
+    plt.plot(area_array)
+    plt.xlabel('time')
+    plt.ylabel('Formation area, [m^2]')
+    plt.grid()
+    plt.draw()
+    plt.pause(1)
+    input("Hit Enter To Close")
+    plt.close('all')
+
 
 # TODO:
 # local minimum problem (FM2 - algorithm: https://pythonhosted.org/scikit-fmm/)
