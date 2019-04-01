@@ -74,9 +74,9 @@ class Mocap_object: # superclass
 			vel = vel_estimation_TransformStamped(msg_past, msg_now)
 			self.vel = vel
 
-class Obstacle:
+class Obstacle(Mocap_object):
     def __init__(self, name='obstacle'):
-    	self.name = name
+    	Mocap_object.__init__(self, name)
         self.R = 0.1
         self.pose = np.array([0,0,0])
         self.orient = np.array([0,0,0])
@@ -100,6 +100,7 @@ class Drone(Mocap_object): # TODO: use superclass mocap_object
 	def __init__(self, name, leader = False):
 		Mocap_object.__init__(self, name)
 		self.leader = leader
+		self.sp = np.array([0,0,0])
 		self.near_obstacle = False
 		self.nearest_obstacle = None
 		self.rad_imp = radius_impedance_model()      # Obstacle avoidance
