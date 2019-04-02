@@ -36,6 +36,31 @@ def msg_def_crazyflie(pose, yaw):
     msg.header.stamp = rospy.Time.now()
     return msg
 
+def hover(t=5):
+    print "Hovering...\n"
+    while not rospy.is_shutdown():
+        for i in range(int(t*100 / len(drones))):
+            for drone in drones:
+                if toFly: drone.fly()
+                drone.publish_sp()
+                time.sleep(0.01)
+        break
+
+def landing():
+    print 'Landing!!!'
+    for drone in drones: drone.sp = drone.position()
+    while(1):
+        for drone in drones:
+            drone.sp[2] = drone.sp[2]-0.02
+            drone.fly()
+
+        if drones[0].sp[2]<-1.0:
+            print 'reached the floor'
+            break
+        time.sleep(0.1)
+        if toFly:
+            for cf in cf_list: cf.stop()
+
 
 class Robot(Drone):
     def __init__(self, name):
@@ -51,14 +76,14 @@ class Robot(Drone):
 
 class Params:
     def __init__(self,):
-        self.R_obstacles = 0.15 # [m]
+        self.R_obstacles = 0.10 # [m]
         self.obstacles_influence_radius = 1.4
-        self.l = 0.4 # [m], inter-drones distance
+        self.l = 0.5 # [m], inter-drones distance
 
 rospy.init_node('CrazyflieAPI', anonymous=False)
 
 toFly          = 0
-TAKEOFFHEIGHT  = 1.4
+TAKEOFFHEIGHT  = 0.8
 TAKEOFFTIME    = 5.0
 LANDTIME       = 2.0
 initialized    = False
@@ -66,7 +91,11 @@ vel_koef       = 3.0
 put_limits       = 1
 limits           = np.array([ 2.0, 2.0, 2.5 ]) # limits desining safety flight area in the room
 limits_negative  = np.array([ -2.0, -2.0, -0.1 ])
+# limits           = np.array([ 1.7, 1.7, 2.5 ]) # limits desining safety flight area in the room
+# limits_negative  = np.array([-1.7, -1.7, -0.1 ])
 repel_robots   = 1
+keep_formation = 1
+collision_avoidance = 1
 
 params = Params()
 
@@ -74,7 +103,8 @@ params = Params()
 drone_joystick = Drone("cf4")
 
 # drones-followers
-cf_names = ['cf1', 'cf2', 'cf3']
+# cf_names = ['cf1', 'cf2', 'cf3']
+cf_names = ['cf1', 'cf2']
 # cf_names = ['cf2']
 
 
@@ -87,7 +117,8 @@ for name in cf_names:
 
 obstacles = []
 obstacles_poses = []
-obstacles_names = ['obstacle4', 'obstacle10', 'obstacle12', 'obstacle25']
+# obstacles_names = ['obstacle4', 'obstacle10', 'obstacle12', 'obstacle25']
+obstacles_names = ['obstacle4', 'obstacle25']
 for name in obstacles_names:
     obstacle = swarmlib.Obstacle(name)
     obstacles.append( obstacle )
@@ -108,21 +139,34 @@ if __name__ == "__main__":
             # print "takeoff.. ", cf.prefix
             for cf in cf_list:
                 cf.takeoff(targetHeight = TAKEOFFHEIGHT, duration = TAKEOFFTIME)
-        time.sleep(TAKEOFFTIME)
+        time.sleep(TAKEOFFTIME+2.0)
+        # go to approximate human location
+        # for t in range(3):
+        # for cf in cf_list:
+        #     cf.goTo(goal = [0.5, 0.5, 0], yaw=0.0, duration=3.0, relative = True)
+        # time.sleep(3.5)
         # for t in range(3):
         #     for cf in cf_list: cf.land(targetHeight = -0.05, duration = 3.0)
 
+     # setpoint estimation
+    print 'Joystick mean orientation estimation...\n' 
+    time_to_eval = 2
+    a = drone_joystick.orientation()
+    for i in range(time_to_eval*100):
+        a = np.vstack([a, drone_joystick.orientation()])
+        time.sleep(0.01)
+    mean_angles = np.array([np.mean(a[:,0]), np.mean(a[:,1]), np.mean(a[:,2])])
 
     print 'start DroneStick \n'
     # time_to_play = 300
     # for i in range(time_to_play*100):
     plt.figure(figsize=(8,8))
     while not rospy.is_shutdown():
-        drone_orient = drone_joystick.orientation()
+        drone_joystick.orient = drone_joystick.orientation()
         drone_joystick.position()
         for drone in drones: drone.pose = drone.position()
-        roll = drone_joystick.orient[0]
-        pitch = drone_joystick.orient[1]
+        roll = drone_joystick.orient[0] - mean_angles[0]
+        pitch = drone_joystick.orient[1] - mean_angles[1]
 
         # update obstacles poses
         for i in range(len(obstacles)):
@@ -132,25 +176,27 @@ if __name__ == "__main__":
         for i in range(len(drones)):
             drones_poses[i] = drones[i].sp[:2]
 
-        # drones formation:
-        # drones[1].sp = drones[0].sp + np.array([-0.86*params.l , params.l/2., 0])
-        # drones[2].sp = drones[0].sp + np.array([-0.86*params.l ,-params.l/2., 0])
-
         if not initialized:
             for drone in drones: drone.sp = np.array( [drone.pose[0], drone.pose[1], TAKEOFFHEIGHT] )
             time_prev = time.time()
             initialized = True
 
-        pitch_thresh = 0.05
-        roll_thresh = 0.05
-        if abs(pitch)<pitch_thresh:
+        pitch_thresh = [0.07, 0.30]
+        roll_thresh = [0.07, 0.30]
+        if abs(pitch)<pitch_thresh[0]:
             x_input = 0
+        elif abs(pitch)>pitch_thresh[1]:
+            x_input = - np.sign(pitch) * pitch_thresh[1]
         else:
-            x_input = pitch
-        if abs(roll)<roll_thresh:
+            x_input = - pitch
+
+        if abs(roll)<roll_thresh[0]:
             y_input = 0
+        elif abs(roll)>roll_thresh[1]:
+            x_input = np.sign(roll) * roll_thresh[1]
         else:
-            y_input = -roll
+            y_input = roll
+        # print roll, pitch
 
         # z_disp = drone.pose[2] - set_point[2]
         # if abs(z_disp)<0.015:
@@ -166,21 +212,26 @@ if __name__ == "__main__":
         for drone in drones: drone.sp += cmd_vel*(time.time()-time_prev)
         time_prev = time_now
 
+
+        # drones formation:
+        if keep_formation and len(drones)>1:
+            drones[1].sp = drones[0].sp + np.array([-0.86*params.l , params.l/2., 0])
+            # drones[2].sp = drones[0].sp + np.array([-0.86*params.l ,-params.l/2., 0])
+
+        # correct point to follow with local planner
+        if collision_avoidance:
+            for p in range(len(drones)):
+                if repel_robots:
+                    robots_obstacles = [x for i,x in enumerate(drones_poses) if i!=p] # all poses except the robot[p]
+                    obstacles_poses1 = obstacles_poses + robots_obstacles
+                    drones[p].local_planner(obstacles_poses1, params)
+                else:
+                    drones[p].local_planner(obstacles_poses, params)
+
         if put_limits:
             for drone in drones:
                 np.putmask(drone.sp, drone.sp >= limits, limits)
                 np.putmask(drone.sp, drone.sp <= limits_negative, limits_negative)
-
-        # correct point to follow with local planner
-        for p in range(len(drones)):
-            if repel_robots:
-                robots_obstacles = [x for i,x in enumerate(drones_poses) if i!=p] # all poses except the robot[p]
-                obstacles_poses1 = obstacles_poses + robots_obstacles
-                drones[p].local_planner(obstacles_poses1, params)
-            else:
-                drones[p].local_planner(obstacles_poses, params)
-
-        
 
         if toFly:
             for drone in drones: drone.fly()
@@ -192,7 +243,7 @@ if __name__ == "__main__":
         for obstacle in obstacles: obstacle.publish_position()
         # visualization: matplotlib
         plt.cla()
-        draw_gradient(drones[0].f)
+        if collision_avoidance: draw_gradient(drones[0].f)
         draw_map(obstacles_poses, params.R_obstacles)
         for drone in drones: plt.plot(drone.sp[0], drone.sp[1], '^', markersize=10, label=drone.name)
         plt.xlabel('X')
@@ -200,27 +251,17 @@ if __name__ == "__main__":
         plt.legend()
         plt.draw()
         plt.pause(0.01)
-        # time.sleep(0.01)
 
 
+        # RETURN JOYSTICK TO THE SWARM
+        Z = 1.4
+        # if drone_joystick.pose[2] > Z + 0.07:
+        if (Z - drone_joystick.pose[2]) > 0.10:
+            print 'Returning joystick...'
+            hover(t=4)
 
-        if (drones[0].pose[2] - drone_joystick.pose[2])>0.7:
-            print "Finish"
-
-            print 'Landing!!!'
-            for drone in drones: drone.sp = drone.position()
-            print "drone_follower1_landing_pose", drones[0].sp
-            while(1):
-                for drone in drones:
-                    drone.sp[2] = drone.sp[2]-0.02
-                    drone.fly()
-
-                if drones[0].sp[2]<-1.0:
-                    print 'reached the floor'
-                    break
-                time.sleep(0.1)
-                if toFly:
-                    for cf in cf_list: cf.stop()
+            landing()
 
             break
+
 
