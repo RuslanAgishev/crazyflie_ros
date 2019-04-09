@@ -19,9 +19,9 @@ def test(cf_name):
 	cf.setParam("stabilizer/controller", 2) # Use Mellinger controller
 	for t in range(num_commands): cf.takeoff(targetHeight = TakeoffHeight, duration = TakeoffTime)
 	time.sleep(TakeoffTime)
-	# for t in range(num_commands): cf.goTo(goal = [0.5, 0.0, 0.0], yaw=0.0, duration = 2.0, relative = True)
-	# time.sleep(3.0)
-	# for t in range(num_commands): cf.goTo(goal = [0.0, 0.5, 0.0], yaw=0.0, duration = 2.0, relative = True)
+	# for t in range(num_commands): cf.goTo(goal = [0.0, 0.0, -TakeoffHeight+0.05], yaw=0.0, duration = 5.0, relative = True)
+	# time.sleep(7.0)
+	# for t in range(num_commands): cf.goTo(goal = [0.0, 0.0, TakeoffHeight], yaw=0.0, duration = 3.0, relative = True)
 	# time.sleep(3.0)
 	# for t in range(num_commands): cf.goTo(goal = [-0.5, -0.5, 0.0], yaw=0.0, duration = 2.0, relative = True)
 	# time.sleep(3.0)
@@ -29,7 +29,7 @@ def test(cf_name):
 
 
 """ init """
-TakeoffHeight = 1.0
+TakeoffHeight = 0.6
 TakeoffTime   = 5.0
 toFly         = 1
 

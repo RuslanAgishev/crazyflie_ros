@@ -14,7 +14,7 @@ def MassSpringDamper(state,t,F, mode='overdamped'):
 	elif mode=='underdapmped':
 		m = 1.0; k = 2; b = 2*sqrt(m*k)-2 # underdamped
 	elif mode=='overdamped':
-		m = 1.0; k = 2; b = 2*sqrt(m*k)+35 # overdamped
+		m = 1.0; k = 2; b = 2*sqrt(m*k)+20 # overdamped
 	else:
 		m = 1.0; k = 2; b = 2*sqrt(m*k) # critically damped
 	xdd = -(b/m)*xd - (k/m)*x + F/m
@@ -22,11 +22,11 @@ def MassSpringDamper(state,t,F, mode='overdamped'):
 
 
 def velocity_impedance(velocity, imp_pose_prev, imp_vel_prev, time_prev):
-	F_coeff = 7 # 7, 12
+	F_coeff = 0.3 # 7, 12
 	time_step = time.time() - time_prev
 	time_prev = time.time()
 	t = [0. , time_step]
-	F = abs(velocity) * F_coeff
+	F = F_coeff * abs(velocity)
 
 	state0_x = [imp_pose_prev[0], imp_vel_prev[0]]
 	state_x = odeint(MassSpringDamper, state0_x, t, args=(F[0],))

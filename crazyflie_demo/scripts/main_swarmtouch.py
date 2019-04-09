@@ -24,7 +24,7 @@ import swarmlib
 
 # PARAMETERs #############
 toFly            = 0
-vel_ctrl         = 0
+vel_ctrl         = 1
 vel_koef         = 4.0
 pos_ctrl		 = 1
 pos_coef         = 2.0
@@ -49,8 +49,9 @@ subject_name = "Test"
 
 
 cf_names         = np.array(['cf1',
-							 'cf2',
-							 'cf3'])
+							 'cf4',
+							 'cf5'
+							 ])
 human_name       = 'palm'
 obstacle_names   = np.array([
 							 # 'obstacle0',
