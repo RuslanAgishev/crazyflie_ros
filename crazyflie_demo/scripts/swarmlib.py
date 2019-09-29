@@ -45,7 +45,7 @@ class Mocap_object: # superclass
 		self.name = name
 		self.tf = '/vicon/'+name+'/'+name
 		self.tl = TransformListener()
-		self.pose = np.array([0,0,0])
+		self.pose = np.array([0.,0.,0.])
 		self.orient = np.array([0,0,0]) # Euler angles
 		self.path = Path()
 		# for velocity:
@@ -100,7 +100,7 @@ class Drone(Mocap_object): # TODO: use superclass mocap_object
 	def __init__(self, name, leader = False):
 		Mocap_object.__init__(self, name)
 		self.leader = leader
-		self.sp = np.array([0,0,0])
+		self.sp = np.array([0.,0.,0.])
 		self.near_obstacle = False
 		self.nearest_obstacle = None
 		self.rad_imp = radius_impedance_model()      # Obstacle avoidance

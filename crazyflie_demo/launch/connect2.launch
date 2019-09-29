@@ -33,7 +33,7 @@
   </group>
 
   <!-- run vicon bridge -->
-  <include file="$(find vicon_bridge)/launch/wifi_vicon.launch"/>
+  <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 
 
   <!--enable joystick-->

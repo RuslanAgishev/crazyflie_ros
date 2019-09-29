@@ -100,7 +100,7 @@ collision_avoidance = 1
 params = Params()
 
 # joystick
-drone_joystick = Drone("cf4")
+drone_joystick = Drone("palm")
 
 # drones-followers
 # cf_names = ['cf1', 'cf2', 'cf3']
@@ -118,7 +118,7 @@ for name in cf_names:
 obstacles = []
 obstacles_poses = []
 # obstacles_names = ['obstacle4', 'obstacle10', 'obstacle12', 'obstacle25']
-obstacles_names = ['obstacle4', 'obstacle25']
+obstacles_names = ['obstacle25']
 for name in obstacles_names:
     obstacle = swarmlib.Obstacle(name)
     obstacles.append( obstacle )
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         # RETURN JOYSTICK TO THE SWARM
         Z = 1.4
         # if drone_joystick.pose[2] > Z + 0.07:
-        if (Z - drone_joystick.pose[2]) > 0.10:
+        if (Z - drone_joystick.pose[2]) > 0.10 and toFly:
             print 'Returning joystick...'
             hover(t=4)
 
