@@ -8,10 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #  ICP parameters
-EPS = 0.1
+EPS = 0.5
 MAXITER = 100
 
-show_animation = False
+show_animation = 1
 
 
 def ICP_matching(ppoints, cpoints):
@@ -31,6 +31,7 @@ def ICP_matching(ppoints, cpoints):
     count = 0
 
     while dError >= EPS:
+        # print(dError)
         count += 1
 
         if show_animation:  # pragma: no cover
